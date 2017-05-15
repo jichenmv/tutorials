@@ -1,5 +1,8 @@
 from datetime import datetime
+import numpy as np
 import pandas as pd
+from sklearn import preprocessing, model_selection, metrics
+from sklearn.linear_model import LinearRegression
 
 
 def read_data():
@@ -66,9 +69,42 @@ def feature_extraction(order_items, train_trips):
     return ret
 
 
+def train_linear_regression(data_frame, feature_list, label_list):
+    """
+    Train simple linear regression models using the features in feature list against the labels in label list
+    Evaluate the model accuracy and stability 
+    :param data_frame: (DataFrame) containing all training data
+    :param feature_list: (list) feature names
+    :param label_list: (list) label names
+    :return: 
+    """
+    X = np.array(data_frame[feature_list])
+    X = preprocessing.scale(X)
+    y = np.array(data_frame[label_list])
+
+    mae = []
+    clf = LinearRegression()
+    for trial in range(1, 21, 1):
+        X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, test_size=0.2, random_state=trial)
+        clf.fit(X_train, y_train)
+        y_pred = clf.predict(X_test)
+        mae.append(metrics.mean_absolute_error(y_test, y_pred))
+
+    mae = np.array(mae)
+    print 'Linear Regression MAEs: '
+    print mae.mean(), '+/-', mae.std()
+
+
 if __name__ == '__main__':
 
     order_items_df, train_trips_df, test_trips_df = read_data()
     feature_label_df = feature_extraction(order_items_df, train_trips_df)
+    print 'All training data: '
     print feature_label_df.shape
     print feature_label_df.head()
+    print ''
+
+    features = ['shopping_hod', 'shopping_dow', 'total_item', 'total_dept', 'total_quantity']
+    labels = ['shopping_time']
+    train_linear_regression(feature_label_df, features, labels)
+    print ''
